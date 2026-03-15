@@ -18,14 +18,19 @@
  */
 package fr.litarvan.openauth.microsoft;
 
-/*import javafx.application.Platform;
+import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
-import javafx.scene.web.WebView;*/
+import javafx.scene.web.WebView;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+
+import fr.altening.launcher.Main;
+
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 /*
@@ -48,7 +53,7 @@ public class LoginFrame extends JFrame
         this.setLocationRelativeTo(null);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        //this.setContentPane(new JFXPanel());
+        this.setContentPane(new JFXPanel());
     }
 
     public CompletableFuture<String> start(String url)
@@ -66,26 +71,26 @@ public class LoginFrame extends JFrame
             }
         });
 
-        //Platform.runLater(() -> this.init(url));
+        Platform.runLater(() -> this.init(url));
         return this.future;
     }
 
     protected void init(String url)
     {
-        /*WebView webView = new WebView();
+        WebView webView = new WebView();
         JFXPanel content = (JFXPanel) this.getContentPane();
 
         content.setScene(new Scene(webView, this.getWidth(), this.getHeight()));
 
         webView.getEngine().locationProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue.contains("access_token")) {
+            if (newValue.contains("code=")) {
                 this.future.complete(newValue);
                 completed = true;
                 this.dispose();
             }
         });
-        webView.getEngine().setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36");
-        webView.getEngine().load(url);*/
+        webView.getEngine().setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.3112.113 Safari/537.36");
+        webView.getEngine().load(url);
 
         this.setVisible(true);
     }

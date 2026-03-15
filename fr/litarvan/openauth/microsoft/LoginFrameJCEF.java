@@ -1,20 +1,17 @@
-/*package fr.litarvan.openauth.microsoft;
+package fr.litarvan.openauth.microsoft;
 
 import org.cef.CefApp;
 import org.cef.CefClient;
 import org.cef.CefSettings;
 import org.cef.browser.CefBrowser;
-import org.cef.browser.CefMessageRouter;
 import org.cef.handler.CefLoadHandlerAdapter;
 
 import fr.altening.launcher.Main;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class LoginFrameJCEF extends JFrame {
@@ -29,11 +26,6 @@ public class LoginFrameJCEF extends JFrame {
     public LoginFrameJCEF createLoginFrame() {
         this.setTitle("Microsoft Authentication");
         this.setSize(750, 750);
-        try {
-        	this.setIconImage(ImageIO.read(Main.class.getResource("/assets/icon32.png")).getScaledInstance(32, 32, 0));
-        } catch (IOException e) {
-        	e.printStackTrace();
-        }
         this.setLocationRelativeTo(null);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -49,7 +41,6 @@ public class LoginFrameJCEF extends JFrame {
 	        this.setLayout(new BorderLayout());
         } catch (UnsatisfiedLinkError exc) {
             JOptionPane.showMessageDialog(this, exc.getStackTrace(), "Erreur", JOptionPane.ERROR_MESSAGE);
-	        Main.main.nameField.setEnabled(true);
 	        Main.main.launchButton.setEnabled(true);
 	    	exc.printStackTrace();
         }
@@ -110,4 +101,4 @@ public class LoginFrameJCEF extends JFrame {
             cefApp = null;
         }
     }
-}*/
+}

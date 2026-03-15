@@ -29,6 +29,7 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.gson.Gson;
@@ -81,10 +82,10 @@ public class Utils {
     	}
 	}
 	
-	public static void saveAccount(String username, String refreshToken) throws IOException {
+	public static void saveAccount(String username, String refreshToken, String uuid, String clientId, String xuid) throws IOException {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         try (Writer writer = new FileWriter(accountJson)) {
-        	gson.toJson(new AccountData(username, refreshToken), writer);
+        	gson.toJson(new AccountData(username, refreshToken, uuid, clientId, xuid), writer);
         }
     }
 	
@@ -283,7 +284,7 @@ public class Utils {
 		}
 	}
 	
-	public static void launch(VersionData version, BootFrame boot) throws Exception {
+	public static void launch(VersionData version, BootFrame boot, Auth auth) {
 		classpathElements = new ArrayList<String>();
 		String selectedVersion = version.getId();
 		File versionFolder = new File(versionsFolder, selectedVersion);
@@ -292,9 +293,20 @@ public class Utils {
 		if (!versionJson.exists() && !version.getUrl().equals("no")) {
 			info("Téléchargement de " + versionJson.getName());
 			boot.label.setText("Téléchargement de " + versionJson.getName());
-			download(version.getUrl(), versionJson, boot);
+			try {
+				download(version.getUrl(), versionJson, boot);
+			} catch (IOException e) {
+				error("Impossible de télécharger " + versionJson.getName(), e);
+				return;
+			}
 		}
-		JSONObject json = new JSONObject(new String(Files.readAllBytes(versionJson.toPath()), StandardCharsets.UTF_8));
+		JSONObject json;
+		try {
+			json = new JSONObject(new String(Files.readAllBytes(versionJson.toPath()), StandardCharsets.UTF_8));
+		} catch (JSONException | IOException e) {
+			error("Impossible de récupérer le JSON : " + versionJson.getName(), e);
+			return;
+		}
 		File versionJar = new File(versionFolder, selectedVersion + ".jar");
 		if (!versionJar.exists()) {
 			JSONObject dls = json.getJSONObject("downloads");
@@ -302,7 +314,12 @@ public class Utils {
 			String url = client.getString("url");
 			info("Téléchargement de " + versionJar.getName());
 			boot.label.setText("Téléchargement de " + versionJar.getName());
-			download(url, versionJar, boot);
+			try {
+				download(url, versionJar, boot);
+			} catch (IOException e) {
+				error("Impossible de télécharger " + versionJar.getName(), e);
+				return;
+			}
 		}	
 		classpathElements.add(versionJar.getAbsolutePath());
 		JSONObject assetIndex = json.getJSONObject("assetIndex");
@@ -315,11 +332,23 @@ public class Utils {
 		if (!assetsIndex.exists()) {
 			info("Téléchargement de " + assetsIndex.getName());
 			boot.label.setText("Téléchargement de " + assetsIndex.getName());
-			download(assetIndex.getString("url"), assetsIndex, boot);
+			try {
+				download(assetIndex.getString("url"), assetsIndex, boot);
+			} catch (JSONException | IOException e) {
+				error("Impossible de télécharger " + assetsIndex.getName(), e);
+				return;
+			}
 		}
 		File nativeFolder = new File(versionFolder, "natives");
 		nativeFolder.mkdirs();
-		JSONObject index = new JSONObject(new String(Files.readAllBytes(assetsIndex.toPath()), StandardCharsets.UTF_8)).getJSONObject("objects");
+		JSONObject index;
+		try {
+			index = new JSONObject(new String(Files.readAllBytes(assetsIndex.toPath()), StandardCharsets.UTF_8)).getJSONObject("objects");
+		} catch (JSONException | IOException e) {
+			e.printStackTrace();
+			error("Impossible de récupérer le JSON : " + assetsIndex.getName(), e);
+			return;
+		}
 		for (String key : index.keySet()) {
 			JSONObject entry = index.getJSONObject(key);
 			String hash = entry.getString("hash");
@@ -331,7 +360,12 @@ public class Utils {
 				asset.getParentFile().mkdirs();
 				info("Téléchargement de " + asset.getName());
 				boot.label.setText("Téléchargement de " + asset.getName());
-				download(url, asset, boot);
+				try {
+					download(url, asset, boot);
+				} catch (IOException e) {
+					error("Impossible de télécharger " + asset.getName(), e);
+					return;
+				}
 			}
 		}
 		libFolder.mkdirs();
@@ -397,12 +431,22 @@ public class Utils {
 		            libFile.getParentFile().mkdirs();
 		            info("Téléchargement de " + libFile.getName());
 		            boot.label.setText("Téléchargement de " + libFile.getName());
-		            download(artifact.getString("url"), libFile, boot);
+		            try {
+		            	download(artifact.getString("url"), libFile, boot);
+		        	} catch (IOException e) {
+		        		error("Impossible de télécharger " + libFile.getName(), e);
+		        		return;
+		        	}
 		        }
 		        if (libFile.exists()) {
 		        	if (libFile.getName().contains("native")) {
 		        		info("Extraction des natives depuis le fichier : " + libFile.getName());
-	            		extractNative(libFile, nativeFolder);
+	            		try {
+							extractNative(libFile, nativeFolder);
+						} catch (IOException e) {
+							error("Impossible d'extraire la/les native(s) du fichier " + libFile.getName(), e);
+							return;
+						}
 		        	} else {
 		        		info("Ajout de " + libFile.getName() + " dans le classpath");
 		        		classpathElements.add(libFile.getAbsolutePath());
@@ -442,17 +486,27 @@ public class Utils {
 		                    nativeFile.getParentFile().mkdirs();
 		                    info("(Legacy Native) Téléchargement de " + nativeFile.getName());
 		                    boot.label.setText("Téléchargement de " + nativeFile.getName());
-		                    download(nativeArtifact.getString("url"), nativeFile, boot);
+		                    try {
+								download(nativeArtifact.getString("url"), nativeFile, boot);
+							} catch (JSONException | IOException e) {
+								error("Impossible de télécharger " + assetsIndex.getName(), e);
+								return;
+							}
 		                }
 		                if (nativeFile.exists() && nativeFile.getName().contains("native")) {
 	                		info("Extraction des natives depuis le fichier : " + nativeFile.getName());
-		            		extractNative(nativeFile, nativeFolder);	
+		            		try {
+								extractNative(nativeFile, nativeFolder);
+							} catch (IOException e) {
+								error("Impossible d'extraire la/les native(s) du fichier " + nativeFile.getName(), e);
+								return;
+							}	
 			            }
 		            }
 		        }
 		    }
 		}
-		File logConfig = new File("");
+		File logConfig = workdir;
 		if (json.has("logging")) {
 			JSONObject logging = json.getJSONObject("logging").getJSONObject("client");
 			JSONObject loggingFile = logging.getJSONObject("file");
@@ -460,36 +514,63 @@ public class Utils {
 			if (!logConfig.exists()) {
 				log_configsFolder.mkdirs();
 				boot.label.setText("Téléchargement de " + logConfig.getName());
-	            download(loggingFile.getString("url"), logConfig, boot);
+	            try {
+					download(loggingFile.getString("url"), logConfig, boot);
+				} catch (JSONException | IOException e) {
+					error("Impossible de télécharger " + assetsIndex.getName(), e);
+					return;
+				}
 			}
 		}
 		String classpath = buildClasspath();
 		info("Classpath : " + classpath);
-		ProcessBuilder game = new ProcessBuilder(
+		List<String> args = new ArrayList<String>();
+		String[] gameArgs = new String[] {
 				"java",
 				"-Djava.library.path=" + nativeFolder.getAbsolutePath(),
 				"-Djava.net.preferIPv4Stack=true",
 				"-Dlog4j.configurationFile=" + logConfig.getAbsolutePath(),
 				"-Dlog4j2.formatMsgNoLookups=true",
 	            "-Dlog4j2.stdout.layoutPattern=%d{HH:mm:ss} [%t/%level]: %msg%n",
-	            "-cp", classpath, json.getString("mainClass"),
-	            "--version", selectedVersion,
-	            "--gameDir", workdir.getAbsolutePath(),
-	            "--assetsDir", "assets",
-	            "--assetIndex", assetsIndexId,
-	            "--accessToken", "0");
+	            "-cp", classpath, json.has("mainClass") ? json.getString("mainClass") : "net.minecraft.client.main.Main"
+	            };
+		for (String s : gameArgs)
+			args.add(s);
+		for (String s : getGameArgs(json)) {
+			s = s.replace("${auth_player_name}", auth.getUsername())
+				 .replace("${version_name}", selectedVersion)
+				 .replace("${game_directory}", workdir.getAbsolutePath())
+				 .replace("${assets_root}", assetsFolder.getAbsolutePath())
+				 .replace("${assets_index_name}", assetsIndexId)
+				 .replace("${auth_uuid}", auth.getUuid())
+				 .replace("${auth_access_token}", auth.getAccessToken())
+				 .replace("${clientid}", auth.getClientId())
+				 .replace("${auth_xuid}", auth.getXuid())
+				 .replace("${user_type}", "legacy")
+				 .replace("${version_type}", "release")
+				 .replace("${user_properties}", "{}");
+			for (String part : s.split(" ")) 
+				if (!part.isEmpty())
+					args.add(part);
+		}
+		ProcessBuilder game = new ProcessBuilder(args);
 		game.directory(workdir);
 		game.redirectErrorStream(true);
 		
 		Main.main.setVisible(false);
 		boot.dispose();
-		Process process = game.start();
+		Process process;
+		try {
+			process = game.start();
+		} catch (IOException e) {
+			error("Impossible de lancer le jeu.", e);
+			return;
+		}
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			String line;
 			String currentLevel = "";
 			String currentThread = "";
 			long currentTimestamp = 0;
-
 			while((line = br.readLine()) != null) {
 				line = line.trim();
 			    if (line.startsWith("<log4j:Event")) {
@@ -504,16 +585,39 @@ public class Utils {
 			    }
 
 			    else if (line.contains("<![CDATA[")) {
-			        line = line.replaceAll(".*<!\\[CDATA\\[", "").replaceAll("]]>.*", "");
+					line = line.replaceAll(".*<!\\[CDATA\\[", "").replaceAll("]]>.*", "");
 
 			        String timeStr = new SimpleDateFormat("HH:mm:ss").format(new Date(currentTimestamp));
 
 			        System.out.println("[" + timeStr + "]" + " [" + currentThread + "/" + currentLevel + "]: " + line.trim());
-			    }
+			    } 
 			}
+		} catch (IOException e) {
+			error("Impossible de creer les logs.", e);
 		}
 		Main.main.setVisible(true);
 	}
+	
+	private static ArrayList<String> getGameArgs(JSONObject json) {
+		ArrayList<String> args = new ArrayList<String>();
+		if (json.has("minecraftArguments"))  {
+			args.add(json.getString("minecraftArguments"));
+		} else if (json.has("arguments")) {
+			JSONObject obj = json.getJSONObject("arguments");
+			if (obj.has("game")) {
+				JSONArray game = obj.getJSONArray("game");
+				for (int i = 0; i < game.length(); i++) {
+				    Object arg = game.get(i);
+				    if (arg instanceof String)
+				    	args.add(arg + "");
+				}
+			}
+		} else {
+			args.add("Unable so find any argument.");
+		}
+		return args;
+	}
+	
 	public static List<String> classpathElements;
 	public static String buildClasspath() {
 		return String.join(File.pathSeparator, classpathElements);
