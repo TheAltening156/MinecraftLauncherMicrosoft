@@ -333,7 +333,7 @@ public class Utils {
 			info("Téléchargement de " + assetsIndex.getName());
 			boot.label.setText("Téléchargement de " + assetsIndex.getName());
 			try {
-				download(assetIndex.getString("url"), assetsIndex, boot);
+				download(assetIndex.has("url") ? assetIndex.getString("url") : "can't find url", assetsIndex, boot);
 			} catch (JSONException | IOException e) {
 				error("Impossible de télécharger " + assetsIndex.getName(), e);
 				return;
@@ -432,7 +432,7 @@ public class Utils {
 		            info("Téléchargement de " + libFile.getName());
 		            boot.label.setText("Téléchargement de " + libFile.getName());
 		            try {
-		            	download(artifact.getString("url"), libFile, boot);
+		            	download(artifact.has("url") ? artifact.getString("url") : "can't find url", libFile, boot);
 		        	} catch (IOException e) {
 		        		error("Impossible de télécharger " + libFile.getName(), e);
 		        		return;
@@ -487,7 +487,7 @@ public class Utils {
 		                    info("(Legacy Native) Téléchargement de " + nativeFile.getName());
 		                    boot.label.setText("Téléchargement de " + nativeFile.getName());
 		                    try {
-								download(nativeArtifact.getString("url"), nativeFile, boot);
+								download(nativeArtifact.has("url") ? nativeArtifact.getString("url") : "can't find url", nativeFile, boot);
 							} catch (JSONException | IOException e) {
 								error("Impossible de télécharger " + assetsIndex.getName(), e);
 								return;
@@ -515,7 +515,7 @@ public class Utils {
 				log_configsFolder.mkdirs();
 				boot.label.setText("Téléchargement de " + logConfig.getName());
 	            try {
-					download(loggingFile.getString("url"), logConfig, boot);
+					download(loggingFile.has("url") ? loggingFile.getString("url") : "cant find url", logConfig, boot);
 				} catch (JSONException | IOException e) {
 					error("Impossible de télécharger " + assetsIndex.getName(), e);
 					return;
